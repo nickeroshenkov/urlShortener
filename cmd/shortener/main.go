@@ -43,12 +43,15 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Short URL does not exist", http.StatusBadRequest)
 			return
 		}
-		fmt.Fprint(w, urlStore[id64])
+		w.Header().Set("Location", urlStore[id64])
+		w.WriteHeader(http.StatusTemporaryRedirect)
 	case http.MethodPost:
 		url := r.FormValue("url")
-		// Then check if url is URL indeed
-		urlStore = append(urlStore, url)
-		// fmt.Fprint(w, url)
+		// Сheck if url is a URL indeed?
+		urlStore = append(urlStore, url) // Need to guard this with mutex?
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprint(w, "localhost:8080/?id=")
+		fmt.Fprint(w, strconv.FormatUint(uint64(len(urlStore)-1), 10))
 	default:
 		http.Error(w, "Only GET or POST requests are allowed", http.StatusMethodNotAllowed)
 	}
