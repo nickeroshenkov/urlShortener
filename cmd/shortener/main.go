@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 )
@@ -46,9 +47,14 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", urlStore[id64])
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	case http.MethodPost:
-		url := r.FormValue("url")
+		// url := r.FormValue("url")
+		url, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		// Сheck if url is a URL indeed?
-		urlStore = append(urlStore, url) // Need to guard this with mutex?
+		urlStore = append(urlStore, string(url)) // Need to guard this with mutex?
 		w.WriteHeader(http.StatusCreated)
 		fmt.Fprint(w, "http://localhost:8080/?id=", len(urlStore)-1)
 	default:
