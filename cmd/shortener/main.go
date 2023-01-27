@@ -49,9 +49,8 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 		url := r.FormValue("url")
 		// Сheck if url is a URL indeed?
 		urlStore = append(urlStore, url) // Need to guard this with mutex?
+		fmt.Fprint(w, "localhost:8080/?id=", len(urlStore)-1)
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "localhost:8080/?id=")
-		fmt.Fprint(w, strconv.FormatUint(uint64(len(urlStore)-1), 10))
 	default:
 		http.Error(w, "Only GET or POST requests are allowed", http.StatusMethodNotAllowed)
 	}
