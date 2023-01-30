@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-var urlInputForm = `
+/* var urlInputForm = `
 <html>
     <head>
     <title></title>
@@ -20,15 +20,15 @@ var urlInputForm = `
         </form>
     </body>
 </html>
-`
+` */
 
 func Shortener(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		if len(r.URL.Query()) == 0 {
+		/* if len(r.URL.Query()) == 0 {
 			fmt.Fprint(w, urlInputForm)
 			return
-		}
+		} */
 		id_string := r.URL.Query().Get("id")
 		if id_string == "" {
 			http.Error(w, "Short URL identificator is missing", http.StatusBadRequest)

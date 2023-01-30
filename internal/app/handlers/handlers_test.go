@@ -1,0 +1,165 @@
+package handlers
+
+import (
+	"bytes"
+	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+type inputProvided struct {
+	method   string
+	url      string
+	body     io.Reader
+	UrlStore []string
+}
+
+type outputDesired struct {
+	code   int
+	header map[string]string
+	body   []byte
+}
+
+var tests = []struct {
+	name string
+	i    inputProvided
+	o    outputDesired
+}{
+	{
+		name: "Try to get with no arguments",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/",
+			body:     nil,
+			UrlStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Try to get with no keys",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/",
+			body:     nil,
+			UrlStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Try to get with a different key",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?a=a",
+			body:     nil,
+			UrlStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Try to get with a wrong value",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?id=a",
+			body:     nil,
+			UrlStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Try to get a non-existing URL #1",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?id=0",
+			body:     nil,
+			UrlStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Try to get a non-existing URL #2",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?id=1",
+			body:     nil,
+			UrlStore: []string{"http://www.google.com"},
+		},
+		o: outputDesired{
+			code:   http.StatusBadRequest,
+			header: nil,
+			body:   nil,
+		},
+	},
+	{
+		name: "Get an existing full URL",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?id=0",
+			body:     nil,
+			UrlStore: []string{"http://www.google.com"},
+		},
+		o: outputDesired{
+			code:   http.StatusTemporaryRedirect,
+			header: map[string]string{"Location": "http://www.google.com"},
+			body:   nil,
+		},
+	},
+}
+
+func TestUserViewHandler(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			storage.UrlStore = tt.i.UrlStore
+			request := httptest.NewRequest(tt.i.method, tt.i.url, tt.i.body)
+			response := httptest.NewRecorder()
+			h := http.HandlerFunc(Shortener)
+			h.ServeHTTP(response, request)
+			result := response.Result()
+
+			// проверяем код ответа
+			if result.StatusCode != tt.o.code {
+				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.Code)
+			}
+
+			// проверяем наличие ключей и их значений в заголовке ответа
+			for k, v := range tt.o.header {
+				if r := result.Header.Get(k); r != v {
+					t.Errorf("Expected header key \"%s\" = \"%s\", but key does not exist or = \"%s\"", k, v, r)
+				}
+			}
+
+			// проверяем тело ответ "как есть", если требуется
+			if tt.o.body != nil {
+				defer result.Body.Close()
+				resultBody, err := io.ReadAll(result.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if bytes.Compare(resultBody, tt.o.body) != 0 {
+					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, resultBody)
+				}
+			}
+		})
+	}
+}
