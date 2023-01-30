@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 	"io"
 	"net/http"
 	"strconv"
@@ -38,11 +39,11 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Short URL identificator must be an unsigned integer", http.StatusBadRequest)
 			return
 		}
-		if int(id) >= len(urlStore) {
+		if int(id) >= len(storage.UrlStore) {
 			http.Error(w, "Short URL does not exist", http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Location", urlStore[id])
+		w.Header().Set("Location", storage.UrlStore[id])
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	case http.MethodPost:
 		// url := r.FormValue("url") // Form is used
@@ -52,9 +53,9 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Сheck if url is a URL indeed?
-		urlStore = append(urlStore, string(url)) // Need to guard this with mutex?
+		storage.UrlStore = append(storage.UrlStore, string(url)) // Need to guard this with mutex?
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "http://localhost:8080/?id=", len(urlStore)-1)
+		fmt.Fprint(w, "http://localhost:8080/?id=", len(storage.UrlStore)-1)
 	default:
 		http.Error(w, "Only GET or POST requests are allowed", http.StatusMethodNotAllowed)
 	}
