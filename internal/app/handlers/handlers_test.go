@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"bytes"
-	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
 type inputProvided struct {
@@ -112,7 +113,7 @@ var tests = []struct {
 		},
 	},
 	{
-		name: "Get an existing full URL",
+		name: "Get an existing full URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
 			url:      "/?id=0",
@@ -122,6 +123,20 @@ var tests = []struct {
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
 			header: map[string]string{"Location": "http://www.google.com"},
+			body:   nil,
+		},
+	},
+	{
+		name: "Get an existing full URL #2",
+		i: inputProvided{
+			method:   http.MethodGet,
+			url:      "/?id=1",
+			body:     nil,
+			UrlStore: []string{"http://www.google.com", "http://www.yandex.ru"},
+		},
+		o: outputDesired{
+			code:   http.StatusTemporaryRedirect,
+			header: map[string]string{"Location": "http://www.yandex.ru"},
 			body:   nil,
 		},
 	},
@@ -137,19 +152,16 @@ func TestUserViewHandler(t *testing.T) {
 			h.ServeHTTP(response, request)
 			result := response.Result()
 
-			// проверяем код ответа
 			if result.StatusCode != tt.o.code {
 				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.Code)
 			}
 
-			// проверяем наличие ключей и их значений в заголовке ответа
 			for k, v := range tt.o.header {
 				if r := result.Header.Get(k); r != v {
 					t.Errorf("Expected header key \"%s\" = \"%s\", but key does not exist or = \"%s\"", k, v, r)
 				}
 			}
 
-			// проверяем тело ответ "как есть", если требуется
 			if tt.o.body != nil {
 				defer result.Body.Close()
 				resultBody, err := io.ReadAll(result.Body)
