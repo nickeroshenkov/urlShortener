@@ -14,7 +14,7 @@ type inputProvided struct {
 	method   string
 	url      string
 	body     io.Reader
-	UrlStore []string
+	URLStore []string
 }
 
 type outputDesired struct {
@@ -34,7 +34,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/",
 			body:     nil,
-			UrlStore: nil,
+			URLStore: nil,
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -48,7 +48,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/",
 			body:     nil,
-			UrlStore: nil,
+			URLStore: nil,
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -62,7 +62,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?a=a",
 			body:     nil,
-			UrlStore: nil,
+			URLStore: nil,
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -76,7 +76,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?id=a",
 			body:     nil,
-			UrlStore: nil,
+			URLStore: nil,
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -90,7 +90,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?id=0",
 			body:     nil,
-			UrlStore: nil,
+			URLStore: nil,
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -104,7 +104,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?id=1",
 			body:     nil,
-			UrlStore: []string{"http://www.google.com"},
+			URLStore: []string{"http://www.google.com"},
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -118,7 +118,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?id=0",
 			body:     nil,
-			UrlStore: []string{"http://www.google.com"},
+			URLStore: []string{"http://www.google.com"},
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
@@ -132,7 +132,7 @@ var tests = []struct {
 			method:   http.MethodGet,
 			url:      "/?id=1",
 			body:     nil,
-			UrlStore: []string{"http://www.google.com", "http://www.yandex.ru"},
+			URLStore: []string{"http://www.google.com", "http://www.yandex.ru"},
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
@@ -145,7 +145,7 @@ var tests = []struct {
 func TestUserViewHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.URLStore = tt.i.UrlStore
+			storage.URLStore = tt.i.URLStore
 			request := httptest.NewRequest(tt.i.method, tt.i.url, tt.i.body)
 			response := httptest.NewRecorder()
 			h := http.HandlerFunc(Shortener)
