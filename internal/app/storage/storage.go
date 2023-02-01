@@ -1,7 +1,7 @@
 package storage
 
-var UrlStore []string
+var URLStore []string
 
 func init() {
-	UrlStore = make([]string, 0)
+	URLStore = make([]string, 0)
 }

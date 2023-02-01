@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
 /* var urlInputForm = `
@@ -29,21 +30,21 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, urlInputForm)
 			return
 		} */
-		id_string := r.URL.Query().Get("id")
-		if id_string == "" {
+		idString := r.URL.Query().Get("id")
+		if idString == "" {
 			http.Error(w, "Short URL identificator is missing", http.StatusBadRequest)
 			return
 		}
-		id, err := strconv.ParseUint(id_string, 10, 0)
+		id, err := strconv.ParseUint(idString, 10, 0)
 		if err != nil {
 			http.Error(w, "Short URL identificator must be an unsigned integer", http.StatusBadRequest)
 			return
 		}
-		if int(id) >= len(storage.UrlStore) {
+		if int(id) >= len(storage.URLStore) {
 			http.Error(w, "Short URL does not exist", http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Location", storage.UrlStore[id])
+		w.Header().Set("Location", storage.URLStore[id])
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	case http.MethodPost:
 		// url := r.FormValue("url") // Form is used
@@ -53,9 +54,9 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Сheck if url is a URL indeed?
-		storage.UrlStore = append(storage.UrlStore, string(url)) // Need to guard this with mutex?
+		storage.URLStore = append(storage.URLStore, string(url)) // Need to guard this with mutex?
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "http://localhost:8080/?id=", len(storage.UrlStore)-1)
+		fmt.Fprint(w, "http://localhost:8080/?id=", len(storage.URLStore)-1)
 	default:
 		http.Error(w, "Only GET or POST requests are allowed", http.StatusMethodNotAllowed)
 	}

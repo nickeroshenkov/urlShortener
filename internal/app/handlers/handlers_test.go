@@ -145,7 +145,7 @@ var tests = []struct {
 func TestUserViewHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.UrlStore = tt.i.UrlStore
+			storage.URLStore = tt.i.UrlStore
 			request := httptest.NewRequest(tt.i.method, tt.i.url, tt.i.body)
 			response := httptest.NewRecorder()
 			h := http.HandlerFunc(Shortener)
@@ -168,7 +168,7 @@ func TestUserViewHandler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if bytes.Compare(resultBody, tt.o.body) != 0 {
+				if !bytes.Equal(resultBody, tt.o.body) {
 					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, resultBody)
 				}
 			}
