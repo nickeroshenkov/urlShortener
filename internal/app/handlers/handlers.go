@@ -23,7 +23,7 @@ import (
 </html>
 ` */
 
-func Shortener(w http.ResponseWriter, r *http.Request) {
+func Shortener(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		/* if len(r.URL.Query()) == 0 {
@@ -38,13 +38,14 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.ParseUint(idString, 10, 0)
 		if err != nil {
 			http.Error(w, "Short URL identificator must be an unsigned integer", http.StatusBadRequest)
+			return 
+		}
+		url, err := s.Get(int(id))
+		if err!=nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if int(id) >= len(storage.URLStore) {
-			http.Error(w, "Short URL does not exist", http.StatusBadRequest)
-			return
-		}
-		w.Header().Set("Location", storage.URLStore[id])
+		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	case http.MethodPost:
 		// url := r.FormValue("url") // Form is used
@@ -54,9 +55,9 @@ func Shortener(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Сheck if url is a URL indeed?
-		storage.URLStore = append(storage.URLStore, string(url)) // Need to guard this with mutex?
+		id := s.Add(string(url))
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "http://localhost:8080/?id=", len(storage.URLStore)-1)
+		fmt.Fprint(w, "http://localhost:8080/?id=", id)
 	default:
 		http.Error(w, "Only GET or POST requests are allowed", http.StatusMethodNotAllowed)
 	}

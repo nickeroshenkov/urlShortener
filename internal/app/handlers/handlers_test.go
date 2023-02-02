@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
+	"errors"
 )
 
 type inputProvided struct {
@@ -142,13 +141,32 @@ var tests = []struct {
 	},
 }
 
+type urlStoreMock struct {
+	urls []string
+}
+
+func (store *urlStoreMock) Add (url string) int {
+	store.urls = append (store.urls, url)
+	return len(store.urls)-1
+}
+
+func (store *urlStoreMock) Get (id int) (string, error) {
+	if id >= len(store.urls) {
+		return "", errors.New ("URL does not exist in the store")
+	}
+	return store.urls[id], nil
+}
+
 func TestUserViewHandler(t *testing.T) {
+	var s urlStoreMock
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.URLStore = tt.i.URLStore
+			s.urls = tt.i.URLStore
 			request := httptest.NewRequest(tt.i.method, tt.i.url, tt.i.body)
 			response := httptest.NewRecorder()
-			h := http.HandlerFunc(Shortener)
+			h := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+				Shortener(&s,w,r)
+			})
 			h.ServeHTTP(response, request)
 			result := response.Result()
 
