@@ -7,11 +7,14 @@ import (
 	"net/http/httptest"
 	"testing"
 	"errors"
+
+	"github.com/go-chi/chi/v5"
+    "github.com/stretchr/testify/require"
 )
 
 type inputProvided struct {
 	method   string
-	url      string
+	path      string
 	body     io.Reader
 	URLStore []string
 }
@@ -28,52 +31,10 @@ var tests = []struct {
 	o    outputDesired
 }{
 	{
-		name: "Try to get with no arguments",
-		i: inputProvided{
-			method:   http.MethodGet,
-			url:      "/",
-			body:     nil,
-			URLStore: nil,
-		},
-		o: outputDesired{
-			code:   http.StatusBadRequest,
-			header: nil,
-			body:   nil,
-		},
-	},
-	{
-		name: "Try to get with no keys",
-		i: inputProvided{
-			method:   http.MethodGet,
-			url:      "/",
-			body:     nil,
-			URLStore: nil,
-		},
-		o: outputDesired{
-			code:   http.StatusBadRequest,
-			header: nil,
-			body:   nil,
-		},
-	},
-	{
-		name: "Try to get with a different key",
-		i: inputProvided{
-			method:   http.MethodGet,
-			url:      "/?a=a",
-			body:     nil,
-			URLStore: nil,
-		},
-		o: outputDesired{
-			code:   http.StatusBadRequest,
-			header: nil,
-			body:   nil,
-		},
-	},
-	{
 		name: "Try to get with a wrong value",
 		i: inputProvided{
 			method:   http.MethodGet,
-			url:      "/?id=a",
+			path:      "/url/a",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -87,7 +48,7 @@ var tests = []struct {
 		name: "Try to get a non-existing URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			url:      "/?id=0",
+			path:      "/url/0",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -101,7 +62,7 @@ var tests = []struct {
 		name: "Try to get a non-existing URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			url:      "/?id=1",
+			path:      "/url/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
@@ -115,13 +76,13 @@ var tests = []struct {
 		name: "Get an existing full URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			url:      "/?id=0",
+			path:      "/url/0",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
 		o: outputDesired{
-			code:   http.StatusTemporaryRedirect,
-			header: map[string]string{"Location": "http://www.google.com"},
+			code:   http.StatusOK,
+			header: nil,
 			body:   nil,
 		},
 	},
@@ -129,13 +90,13 @@ var tests = []struct {
 		name: "Get an existing full URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			url:      "/?id=1",
+			path:      "/url/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com", "http://www.yandex.ru"},
 		},
 		o: outputDesired{
-			code:   http.StatusTemporaryRedirect,
-			header: map[string]string{"Location": "http://www.yandex.ru"},
+			code:   http.StatusOK,
+			header: nil,
 			body:   nil,
 		},
 	},
@@ -157,39 +118,40 @@ func (store *urlStoreMock) Get (id int) (string, error) {
 	return store.urls[id], nil
 }
 
-func TestUserViewHandler(t *testing.T) {
-	var s urlStoreMock
+func TestSetRoute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s.urls = tt.i.URLStore
-			request := httptest.NewRequest(tt.i.method, tt.i.url, tt.i.body)
-			response := httptest.NewRecorder()
-			h := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
-				Shortener(&s,w,r)
-			})
-			h.ServeHTTP(response, request)
-			result := response.Result()
-
-			if result.StatusCode != tt.o.code {
-				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.Code)
+			store := urlStoreMock { urls: tt.i.URLStore }
+			router := chi.NewRouter()
+			SetRoute (&store, router)
+			server := httptest.NewServer(router)
+			defer server.Close()
+			
+			request, err := http.NewRequest(tt.i.method, server.URL+tt.i.path, tt.i.body)
+			require.NoError(t, err)
+			response, err := http.DefaultClient.Do(request)
+			require.NoError(t, err)
+			
+			if response.StatusCode != tt.o.code {
+				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.StatusCode)
 			}
 
 			for k, v := range tt.o.header {
-				if r := result.Header.Get(k); r != v {
+				if r := response.Header.Get(k); r != v {
 					t.Errorf("Expected header key \"%s\" = \"%s\", but key does not exist or = \"%s\"", k, v, r)
 				}
 			}
 
 			if tt.o.body != nil {
-				defer result.Body.Close()
-				resultBody, err := io.ReadAll(result.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(resultBody, tt.o.body) {
-					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, resultBody)
+				responseBody, err := io.ReadAll(response.Body)
+				require.NoError(t, err)
+				defer response.Body.Close()
+				
+				if !bytes.Equal(responseBody, tt.o.body) {
+					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, responseBody)
 				}
 			}
+
 		})
-	}
-}
+	}	
+}	
