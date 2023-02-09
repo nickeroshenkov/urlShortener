@@ -2,20 +2,20 @@ package handlers
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"errors"
 
 	"github.com/go-chi/chi/v5"
-    "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type inputProvided struct {
 	method   string
 	path      string
-	body     io.Reader
+	body     []byte
 	URLStore []string
 }
 
@@ -23,6 +23,7 @@ type outputDesired struct {
 	code   int
 	header map[string]string
 	body   []byte
+	URLStore []string
 }
 
 var tests = []struct {
@@ -31,10 +32,25 @@ var tests = []struct {
 	o    outputDesired
 }{
 	{
+		name: "Add new URL",
+		i: inputProvided{
+			method:   http.MethodPost,
+			path:     "/",
+			body:     []byte ("http://www.google.com"),
+			URLStore: nil,
+		},
+		o: outputDesired{
+			code:   http.StatusCreated,
+			header: nil,
+			body:   nil,
+			URLStore: []string{"http://www.google.com"},
+		},
+	},
+	{
 		name: "Try to get with a wrong value",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/a",
+			path:     "/a",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -42,13 +58,14 @@ var tests = []struct {
 			code:   http.StatusBadRequest,
 			header: nil,
 			body:   nil,
+			URLStore: nil,
 		},
 	},
 	{
 		name: "Try to get a non-existing URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/0",
+			path:     "/0",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -56,13 +73,14 @@ var tests = []struct {
 			code:   http.StatusBadRequest,
 			header: nil,
 			body:   nil,
+			URLStore: nil,
 		},
 	},
 	{
 		name: "Try to get a non-existing URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/1",
+			path:     "/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
@@ -70,34 +88,37 @@ var tests = []struct {
 			code:   http.StatusBadRequest,
 			header: nil,
 			body:   nil,
+			URLStore: []string{"http://www.google.com"},
 		},
 	},
 	{
 		name: "Get an existing full URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/0",
+			path:     "/0",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
-			header: nil,
+			code:   http.StatusTemporaryRedirect,
+			header: map[string]string{"Location": "http://www.google.com"},
 			body:   nil,
+			URLStore: []string{"http://www.google.com"},
 		},
 	},
 	{
 		name: "Get an existing full URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/1",
+			path:     "/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com", "http://www.yandex.ru"},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
-			header: nil,
+			code:   http.StatusTemporaryRedirect,
+			header: map[string]string{"Location": "http://www.yandex.ru"},
 			body:   nil,
+			URLStore: []string{"http://www.google.com", "http://www.yandex.ru"},
 		},
 	},
 }
@@ -127,9 +148,15 @@ func TestSetRoute(t *testing.T) {
 			server := httptest.NewServer(router)
 			defer server.Close()
 			
-			request, err := http.NewRequest(tt.i.method, server.URL+tt.i.path, tt.i.body)
+			request, err := http.NewRequest(tt.i.method, server.URL+tt.i.path, bytes.NewReader(tt.i.body))
 			require.NoError(t, err)
-			response, err := http.DefaultClient.Do(request)
+			// Provide CheckRedirect() to modify client's behavior for re-directs
+			client := &http.Client {
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}
+			response, err := client.Do(request)
 			require.NoError(t, err)
 			
 			if response.StatusCode != tt.o.code {
@@ -142,6 +169,7 @@ func TestSetRoute(t *testing.T) {
 				}
 			}
 
+			/* Response body check
 			if tt.o.body != nil {
 				responseBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
@@ -150,8 +178,11 @@ func TestSetRoute(t *testing.T) {
 				if !bytes.Equal(responseBody, tt.o.body) {
 					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, responseBody)
 				}
-			}
+			} */
 
+			/* Check changes in URL store
+			*/
+			assert.Equal(t, store.urls, tt.o.URLStore)	
 		})
 	}	
 }	
