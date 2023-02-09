@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/nickeroshenkov/urlShortener/internal/app/server"
 
 func main() {
-	fmt.Println("ok3")
+	server.Run()
 }
