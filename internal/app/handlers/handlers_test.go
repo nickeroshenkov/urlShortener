@@ -169,7 +169,7 @@ func TestSetRoute(t *testing.T) {
 				}
 			}
 
-			/* Response body check
+			// Response body check
 			if tt.o.body != nil {
 				responseBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestSetRoute(t *testing.T) {
 				if !bytes.Equal(responseBody, tt.o.body) {
 					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, responseBody)
 				}
-			} */
+			}
 
 			/* Check changes in URL store
 			*/
