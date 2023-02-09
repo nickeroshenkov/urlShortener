@@ -34,7 +34,7 @@ var tests = []struct {
 		name: "Try to get with a wrong value",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/url/a",
+			path:      "/a",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -48,7 +48,7 @@ var tests = []struct {
 		name: "Try to get a non-existing URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/url/0",
+			path:      "/0",
 			body:     nil,
 			URLStore: nil,
 		},
@@ -62,7 +62,7 @@ var tests = []struct {
 		name: "Try to get a non-existing URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/url/1",
+			path:      "/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
@@ -76,7 +76,7 @@ var tests = []struct {
 		name: "Get an existing full URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/url/0",
+			path:      "/0",
 			body:     nil,
 			URLStore: []string{"http://www.google.com"},
 		},
@@ -90,7 +90,7 @@ var tests = []struct {
 		name: "Get an existing full URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:      "/url/1",
+			path:      "/1",
 			body:     nil,
 			URLStore: []string{"http://www.google.com", "http://www.yandex.ru"},
 		},

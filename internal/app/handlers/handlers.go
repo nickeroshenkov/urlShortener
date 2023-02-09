@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"io"
 
 	"github.com/go-chi/chi/v5"
 
@@ -11,13 +12,11 @@ import (
 )
 
 func SetRoute(s storage.URLStorer, r chi.Router) {
-	r.Route("/new", func(r chi.Router) {
-		r.Get("/", provideForm)
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			addURL(s, w, r)
-		})
+	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		addURL(s, w, r)
 	})
-	r.Route("/url/{urlID}", func(r chi.Router) {
+	// r.Get("/", provideForm)
+	r.Route("/{urlID}", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			getURL(s, w, r)
 		})
@@ -25,7 +24,7 @@ func SetRoute(s storage.URLStorer, r chi.Router) {
 	})
 }
 
-var newForm = `
+/* var newForm = `
 <html>
     <head>
     <title></title>
@@ -41,16 +40,22 @@ var newForm = `
 
 func provideForm(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, newForm)
-}
+} */
 
 func addURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
-	url := r.FormValue("url")
+	url, err := io.ReadAll(r.Body) // Form is not used yet, just read from the body
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	// url := r.FormValue("url") // Form is used
 
 	// Сheck here if url is a URL indeed? + not ""
 
 	id := s.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://localhost:8080/url/", id)
+	fmt.Fprint(w, "http://localhost:8080/", id)
 }
 
 func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
