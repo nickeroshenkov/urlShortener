@@ -77,3 +77,4 @@ func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
+

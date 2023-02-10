@@ -26,3 +26,4 @@ func Run() {
 	http.ListenAndServe("localhost:8080", r)
 	// Consider to use log.Fatal(http.ListenAndServe("localhost:8080", nil)) instead
 }
+
