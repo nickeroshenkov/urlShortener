@@ -10,9 +10,12 @@ import (
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
-func Run() {
-	var s storage.URLStore
-	// s.Init() can be here
+const (
+	server = "localhost:8080"
+)
+
+func Run() (err error) {
+	s := storage.New()
 
 	r := chi.NewRouter()
 
@@ -21,9 +24,9 @@ func Run() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	handlers.SetRoute(&s, r)
+	handlers.SetRoute(s, r)
 
-	http.ListenAndServe("localhost:8080", r)
-	// Consider to use log.Fatal(http.ListenAndServe("localhost:8080", nil)) instead
+	err = http.ListenAndServe(server, r)
+		
+	return
 }
-

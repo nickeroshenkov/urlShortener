@@ -1,8 +1,13 @@
 package main
 
-import "github.com/nickeroshenkov/urlShortener/internal/app/server"
+import (
+	"log"
+
+	"github.com/nickeroshenkov/urlShortener/internal/app/server"
+)
 
 func main() {
-	server.Run()
+	if err := server.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
-

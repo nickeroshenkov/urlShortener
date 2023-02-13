@@ -11,51 +11,37 @@ import (
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
+const (
+	server = "localhost:8080"
+)
+
 func SetRoute(s storage.URLStorer, r chi.Router) {
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		addURL(s, w, r)
 	})
-	// r.Get("/", provideForm)
 	r.Route("/{urlID}", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			getURL(s, w, r)
 		})
-		// r.Delete("/", ...)
 	})
 }
 
-/* var newForm = `
-<html>
-    <head>
-    <title></title>
-    </head>
-    <body>
-        <form method="post">
-            <label>Enter full URL to shorten, e.g. http://www.google.com : </label><input type="text" name="url">
-            <input type="submit" value="OK">
-        </form>
-    </body>
-</html>
-`
-
-func provideForm(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, newForm)
-} */
+/* Note both addURL() and getURL() take URLStorer as an argument. We could make them
+	to be URLStorer methods instead, but it would make URLStorer scope less clear --
+	"URLStorer" implies that the main scope is to store URLs, while HTTP handlers
+	implementation is out of it.
+*/
 
 func addURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
-	url, err := io.ReadAll(r.Body) // Form is not used yet, just read from the body
+	url, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
-	// url := r.FormValue("url") // Form is used
-
-	// Сheck here if url is a URL indeed? + not ""
-
 	id := s.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://localhost:8080/", id)
+	fmt.Fprint(w, "http://" + server + "/" + strconv.FormatUint(uint64(id), 10))
 }
 
 func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
@@ -69,7 +55,7 @@ func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Short URL identificator must be an unsigned integer", http.StatusBadRequest)
 		return
 	}
-	url, err := s.Get(int(id))
+	url, err := s.Get(uint32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -77,4 +63,3 @@ func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
-

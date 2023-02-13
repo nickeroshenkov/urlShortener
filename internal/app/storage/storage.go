@@ -1,30 +1,44 @@
 package storage
 
-import ("errors")
+import (
+	"errors"
+)
 
 type URLStorer interface {
-	// Init ()
-	Add (url string) int
-	Get (id int) (string, error)
+	Add(url string) uint32
+	Get(id uint32) (string, error)
 }
 
+/* Remember to check for datarace once placed in memory
+*/
 type URLStore struct {
-	urls []string
+	i uint32
+	s map[uint32]string
 }
 
-// func (store *URLStore) Init () {
-// 	store.urls = make([]string,0)
-// }
-
-func (store *URLStore) Add (url string) int {
-	store.urls = append (store.urls, url)
-	return len(store.urls)-1
-}
-
-func (store *URLStore) Get (id int) (string, error) {
-	if id >= len(store.urls) {
-		return "", errors.New ("URL does not exist in the store")
+func New() *URLStore {
+	return &URLStore {
+		i: 0,
+		s: map[uint32]string {},
 	}
-	return store.urls[id], nil
 }
 
+func (store *URLStore) Add(url string) uint32 {
+	for k, v := range store.s {
+		if v == url {
+			return k
+		}
+	}
+	store.i++
+	store.s[store.i] = url
+	return store.i
+}
+
+func (store *URLStore) Get(key uint32) (string, error) {
+	var getError = errors.New("URL does not exist in the store")
+	url, ok := store.s[key]
+	if !ok {
+		return "", getError
+	}
+	return url, nil
+}
