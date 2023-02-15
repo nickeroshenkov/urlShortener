@@ -18,13 +18,13 @@ type URLStore struct {
 	s map[string]string
 }
 
-func New() *URLStore {
+func NewURLStore() *URLStore {
 	return &URLStore {
 		s: map[string]string {},
 	}
 }
 
-/* Current implementation of Add() / Get () use 32-bit FNV-1a hashes with Base64 encoding (URL safe)
+/* Current implementation of Add() and Get() use 32-bit FNV-1a hashes with Base64 encoding (URL safe)
 */
 
 func (store *URLStore) Add(url string) string {

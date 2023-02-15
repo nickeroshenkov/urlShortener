@@ -11,49 +11,55 @@ import (
 )
 
 const (
-	server = "localhost:8080"
+	HeaderLocation = "Location"
 )
 
-func SetRoute(s storage.URLStorer, r chi.Router) {
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		addURL(s, w, r)
-	})
-	r.Route("/{short}", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			getURL(s, w, r)
-		})
-	})
+type URLRouter struct {
+	serverBaseURL string
+	chiRouter chi.Router
+	urlStorer storage.URLStorer
 }
 
-/* Both addURL() and getURL() take URLStorer as an argument. We could make them
-	to be URLStorer methods instead, but it would make URLStorer scope less clear --
-	"URLStorer" implies that the main scope is to store URLs, while HTTP handlers
-	do things out of this scope.
-*/
+func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
+	ur := URLRouter {
+		serverBaseURL: s,
+		chiRouter: c,
+		urlStorer: u,
+	}
+	ur.chiRouter.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		ur.addURL(w, r)
+	})
+	ur.chiRouter.Route("/{short}", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			ur.getURL(w, r)
+		})
+	})
+	return &ur
+}
 
-func addURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
+func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	short := s.Add(string(url))
+	short := ur.urlStorer.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://" + server + "/" + short)
+	fmt.Fprint(w, "http://" + ur.serverBaseURL + "/" + short)
 }
 
-func getURL(s storage.URLStorer, w http.ResponseWriter, r *http.Request) {
+func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
 	short := chi.URLParam(r, "short")
 	if short == "" {
 		http.Error(w, "Short URL identificator is missing", http.StatusBadRequest)
 		return
 	}
-	url, err := s.Get(short)
+	url, err := ur.urlStorer.Get(short)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Location", url)
+	w.Header().Set(HeaderLocation, url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

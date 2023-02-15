@@ -7,7 +7,7 @@ import (
 )
 
 func TestAddGet(t *testing.T) {
-	store := New()
+	store := NewURLStore()
 	var url string
 	var err error
 	

@@ -10,13 +10,8 @@ import (
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
-const (
-	server = "localhost:8080"
-)
-
-func Run() (err error) {
-	s := storage.New()
-
+func Run(serverBaseURL string) (err error) {
+	s := storage.NewURLStore()
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -24,9 +19,9 @@ func Run() (err error) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	handlers.SetRoute(s, r)
+	handlers.NewURLRouter(serverBaseURL, r, s)
 
-	err = http.ListenAndServe(server, r)
+	err = http.ListenAndServe(serverBaseURL, r)
 		
 	return
 }
