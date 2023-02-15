@@ -22,6 +22,6 @@ func Run(serverBaseURL string) (err error) {
 	handlers.NewURLRouter(serverBaseURL, r, s)
 
 	err = http.ListenAndServe(serverBaseURL, r)
-		
+
 	return
 }

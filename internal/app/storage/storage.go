@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"errors"
-	"encoding/binary"
 	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"hash/fnv"
 )
 
@@ -13,33 +13,33 @@ type URLStorer interface {
 }
 
 /* Remember to check for datarace once placed in the memory
-*/
+ */
 type URLStore struct {
 	s map[string]string
 }
 
 func NewURLStore() *URLStore {
-	return &URLStore {
-		s: map[string]string {},
+	return &URLStore{
+		s: map[string]string{},
 	}
 }
 
 /* Current implementation of Add() and Get() use 32-bit FNV-1a hashes with Base64 encoding (URL safe)
-*/
+ */
 
 func (store *URLStore) Add(url string) string {
-    /* Check if URL has already been stored
-	*/
+	/* Check if URL has already been stored
+	 */
 	for k, v := range store.s {
 		if v == url {
 			return k
 		}
 	}
-	
+
 	h := make([]byte, 4)
-    binary.LittleEndian.PutUint32(h, hash(url))
+	binary.LittleEndian.PutUint32(h, hash(url))
 	short := base64.URLEncoding.EncodeToString(h)
-	
+
 	store.s[short] = url
 	return short
 }

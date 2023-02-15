@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"fmt"
-	"net/http"
 	"io"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
@@ -16,15 +16,15 @@ const (
 
 type URLRouter struct {
 	serverBaseURL string
-	chiRouter chi.Router
-	urlStorer storage.URLStorer
+	chiRouter     chi.Router
+	urlStorer     storage.URLStorer
 }
 
 func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
-	ur := URLRouter {
+	ur := URLRouter{
 		serverBaseURL: s,
-		chiRouter: c,
-		urlStorer: u,
+		chiRouter:     c,
+		urlStorer:     u,
 	}
 	ur.chiRouter.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		ur.addURL(w, r)
@@ -46,7 +46,7 @@ func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	}
 	short := ur.urlStorer.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://" + ur.serverBaseURL + "/" + short)
+	fmt.Fprint(w, "http://"+ur.serverBaseURL+"/"+short)
 }
 
 func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
