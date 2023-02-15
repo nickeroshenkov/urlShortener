@@ -44,7 +44,7 @@ var tests = []struct {
 			code:   http.StatusCreated,
 			header: nil,
 			body:   nil,
-			store: nil,
+			store: map[string]string { "": "http://www.google.com" },
 		},
 	},
 	{
@@ -192,10 +192,11 @@ func TestSetRoute(t *testing.T) {
 				if len(tt.o.store) != len(store.s) {
 					t.Errorf("Expected URL store size does not match the resulted one")
 				}
+				outer:
 				for _, v := range tt.o.store {
 					for _, w := range store.s {
 						if v == w {
-							break
+							continue outer
 						}
 					}
 					t.Errorf("Expected URL store value %s does not exist", v)
