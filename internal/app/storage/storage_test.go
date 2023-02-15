@@ -13,7 +13,7 @@ func TestAddGet(t *testing.T) {
 	
 	/* Try to get without adding first
 	*/
-	_, err = store.Get(100)
+	_, err = store.Get("0")
 	assert.Error(t, err)
 
     /* Try to add few, get one back and check

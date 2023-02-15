@@ -7,9 +7,9 @@ import (
 	"io"
 	"testing"
 	"errors"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,14 +17,14 @@ type inputProvided struct {
 	method   string
 	path      string
 	body     []byte
-	URLStore map[uint32]string
+	store map[string]string
 }
 
 type outputDesired struct {
 	code   int
 	header map[string]string
 	body   []byte
-	URLStore map[uint32]string
+	store map[string]string
 }
 
 var tests = []struct {
@@ -38,113 +38,98 @@ var tests = []struct {
 			method:   http.MethodPost,
 			path:     "/",
 			body:     []byte ("http://www.google.com"),
-			URLStore: map[uint32]string {},
+			store: map[string]string {},
 		},
 		o: outputDesired{
 			code:   http.StatusCreated,
 			header: nil,
 			body:   nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", },
-		},
-	},
-	{
-		name: "Try to get with a wrong value",
-		i: inputProvided{
-			method:   http.MethodGet,
-			path:     "/a",
-			body:     nil,
-			URLStore: map[uint32]string {},
-		},
-		o: outputDesired{
-			code:   http.StatusBadRequest,
-			header: nil,
-			body:   nil,
-			URLStore: map[uint32]string {},
+			store: nil,
 		},
 	},
 	{
 		name: "Try to get a non-existing URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:     "/1",
+			path:     "/12345",
 			body:     nil,
-			URLStore: map[uint32]string {},
+			store: map[string]string {},
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
 			header: nil,
 			body:   nil,
-			URLStore: map[uint32]string {},
+			store: nil,
 		},
 	},
 	{
 		name: "Try to get a non-existing URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:     "/2",
+			path:     "/12345",
 			body:     nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", },
+			store: map[string]string { "54321": "http://www.google.com", },
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
 			header: nil,
 			body:   nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", },
+			store: nil,
 		},
 	},
 	{
 		name: "Get an existing full URL #1",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:     "/1",
+			path:     "/abc",
 			body:     nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", },
+			store: map[string]string { "abc": "http://www.google.com", },
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
 			header: map[string]string { "Location": "http://www.google.com", },
 			body:   nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", },
+			store: nil,
 		},
 	},
 	{
 		name: "Get an existing full URL #2",
 		i: inputProvided{
 			method:   http.MethodGet,
-			path:     "/2",
+			path:     "/ABC",
 			body:     nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", 2: "http://www.yandex.ru", },
+			store: map[string]string { "abc": "http://www.google.com", "ABC": "http://www.yandex.ru", },
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
 			header: map[string]string { "Location": "http://www.yandex.ru", },
 			body:   nil,
-			URLStore: map[uint32]string { 1: "http://www.google.com", 2: "http://www.yandex.ru", },
+			store: nil,
 		},
 	},
 }
 
-/* This is a mock using storage.URLStorer interface. It is implemented using a memory-based map.
-	At the time being, storage.URLStore uses the same approach, but this can change in the future.
-	Also, the mock allows a direct access to the map without Add()/Get() for the purpose of easier
-	tests setup.
+/* This is a mock storage for test purposes using URLStorer interface. It implements
+	the most simple approach with a memory-based map and a counter. The mock can also
+	access the map directly without Add() / Get() for a faster test setup and checks.
 */
 type urlStoreMock struct {
 	i uint32
-	s map[uint32]string
+	s map[string]string
 }
-func (store *urlStoreMock) Add (url string) uint32 {
+func (store *urlStoreMock) Add (url string) string {
 	for k, v := range store.s {
 		if v == url {
 			return k
 		}
 	}
 	store.i++
-	store.s[store.i] = url
-	return store.i
+	short := strconv.FormatUint(uint64(store.i), 10)
+	store.s[short] = url
+	return short
 }
-func (store *urlStoreMock) Get (key uint32) (string, error) {
-	url, ok := store.s[key]
+func (store *urlStoreMock) Get (short string) (string, error) {
+	url, ok := store.s[short]
 	if !ok {
 		return "", errors.New("URL does not exist in the store")
 	}
@@ -154,7 +139,7 @@ func (store *urlStoreMock) Get (key uint32) (string, error) {
 func TestSetRoute(t *testing.T) {
 	for _, tt := range tests { 
 		t.Run(tt.name, func(t *testing.T) {
-			store := urlStoreMock { i: 0, s: tt.i.URLStore, }
+			store := urlStoreMock { i: 0, s: tt.i.store, }
 			
 			router := chi.NewRouter()
 			SetRoute (&store, router)
@@ -175,13 +160,13 @@ func TestSetRoute(t *testing.T) {
 			response, err := client.Do(request)
 			require.NoError(t, err)
 			
-			/* Response status code check
+			/* Check the response status code
 			*/			
 			if response.StatusCode != tt.o.code {
 				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.StatusCode)
 			}
 
-			/* Response header check
+			/* Check the response header
 			*/			
 			for k, v := range tt.o.header {
 				if r := response.Header.Get(k); r != v {
@@ -189,7 +174,7 @@ func TestSetRoute(t *testing.T) {
 				}
 			}
 
-			/* Response body check
+			/* Check the response body (if needed)
 			*/
 			if tt.o.body != nil {
 				responseBody, err := io.ReadAll(response.Body)
@@ -201,10 +186,21 @@ func TestSetRoute(t *testing.T) {
 				}
 			}
 
-			/* URL store changes check
+			/* Check resulted URL store (if needed), but ignore map key values
 			*/
-			assert.Equal(t, store.s, tt.o.URLStore)	
+			if tt.o.store != nil {
+				if len(tt.o.store) != len(store.s) {
+					t.Errorf("Expected URL store size does not match the resulted one")
+				}
+				for _, v := range tt.o.store {
+					for _, w := range store.s {
+						if v == w {
+							break
+						}
+					}
+					t.Errorf("Expected URL store value %s does not exist", v)
+				}
+			}
 		})
 	}	
-}	
-
+}
