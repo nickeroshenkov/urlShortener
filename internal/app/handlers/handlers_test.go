@@ -33,6 +33,21 @@ var tests = []struct {
 	o    outputDesired
 }{
 	{
+		name: "Add new URL via API",
+		i: inputProvided{
+			method: http.MethodPost,
+			path:   "/api/shorten",
+			body:   []byte("{\"url\":\"http://www.google.com\"}"),
+			store:  map[string]string{},
+		},
+		o: outputDesired{
+			code:   http.StatusOK,
+			header: map[string]string{"Content-Type": "application/json"},
+			body:   []byte("{\"result\":\"http://server:port/1\"}\n"), // Assume mock storage is used for the first time
+			store:  map[string]string{"": "http://www.google.com"},
+		},
+	},
+	{
 		name: "Add new URL",
 		i: inputProvided{
 			method: http.MethodPost,

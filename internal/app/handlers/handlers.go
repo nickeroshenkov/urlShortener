@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"encoding/json"
 
 	"github.com/go-chi/chi/v5"
 
@@ -11,7 +12,8 @@ import (
 )
 
 const (
-	HeaderLocation = "Location"
+	headerLocation = "Location"
+	headerContentType = "Content-Type"
 )
 
 type URLRouter struct {
@@ -34,6 +36,10 @@ func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 			ur.getURL(w, r)
 		})
 	})
+	ur.chiRouter.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
+		ur.apiAddURL(w, r)
+	})
+
 	return &ur
 }
 
@@ -46,7 +52,7 @@ func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	}
 	short := ur.urlStorer.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://"+ur.serverBaseURL+"/"+short)
+	fmt.Fprint(w, "http://" + ur.serverBaseURL + "/" + short)
 }
 
 func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +66,30 @@ func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set(HeaderLocation, url)
+	w.Header().Set(headerLocation, url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (ur URLRouter) apiAddURL(w http.ResponseWriter, r *http.Request) {
+	var (
+		request struct {
+			URL string `json:"url"`
+		}
+		response struct {
+			Result string `json:"result"`
+		}
+	)
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	short := ur.urlStorer.Add(string(request.URL))
+	response.Result = "http://" + ur.serverBaseURL + "/" + short
+	w.Header().Set(headerContentType, "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// w.WriteHeader(http.StatusCreated)
 }
