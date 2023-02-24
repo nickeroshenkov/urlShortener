@@ -2,16 +2,26 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/nickeroshenkov/urlShortener/internal/app/server"
 )
 
 const (
-	serverBaseURL = "localhost:8080"
+	serverAddress = "localhost:8080"
+	baseURL       = "http://localhost:8080/"
 )
 
 func main() {
-	if err := server.Run(serverBaseURL); err != nil {
+	s := os.Getenv("SERVER_ADDRESS")
+	b := os.Getenv("BASE_URL")
+	if s == "" {
+		s = serverAddress
+	}
+	if b == "" {
+		b = serverAddress
+	}
+	if err := server.Run(s, b); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -173,7 +173,7 @@ func TestSetRoute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := urlStoreMock{i: 0, s: tt.i.store}
 			router := chi.NewRouter()
-			NewURLRouter("server:port", router, &store)
+			NewURLRouter("http://server:port/", router, &store)
 			server := httptest.NewServer(router)
 			defer server.Close()
 

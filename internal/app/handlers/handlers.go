@@ -15,14 +15,14 @@ const (
 )
 
 type URLRouter struct {
-	serverBaseURL string
+	baseURL string
 	chiRouter     chi.Router
 	urlStorer     storage.URLStorer
 }
 
 func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 	ur := URLRouter{
-		serverBaseURL: s,
+		baseURL: s,
 		chiRouter:     c,
 		urlStorer:     u,
 	}
@@ -52,21 +52,19 @@ func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ur URLRouter) apiAddURL(w http.ResponseWriter, r *http.Request) {
-	var (
-		request struct {
-			URL string `json:"url"`
-		}
-		response struct {
-			Result string `json:"result"`
-		}
-	)
+	var request struct {
+		URL string `json:"url"`
+	}
+	var response struct {
+		Result string `json:"result"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 	short := ur.urlStorer.Add(string(request.URL))
-	response.Result = "http://" + ur.serverBaseURL + "/" + short
+	response.Result = ur.baseURL + short
 	w.Header().Set(headerContentType, "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

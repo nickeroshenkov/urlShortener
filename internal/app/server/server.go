@@ -10,7 +10,7 @@ import (
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
-func Run(serverBaseURL string) (err error) {
+func Run(serverAddress, baseURL string) (err error) {
 	s := storage.NewURLStore()
 	r := chi.NewRouter()
 
@@ -19,9 +19,9 @@ func Run(serverBaseURL string) (err error) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	handlers.NewURLRouter(serverBaseURL, r, s)
+	handlers.NewURLRouter(baseURL, r, s)
 
-	err = http.ListenAndServe(serverBaseURL, r)
+	err = http.ListenAndServe(serverAddress, r)
 
 	return
 }
