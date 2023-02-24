@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"encoding/json"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
@@ -12,7 +10,7 @@ import (
 )
 
 const (
-	headerLocation = "Location"
+	headerLocation    = "Location"
 	headerContentType = "Content-Type"
 )
 
@@ -28,31 +26,14 @@ func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 		chiRouter:     c,
 		urlStorer:     u,
 	}
-	ur.chiRouter.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		ur.addURL(w, r)
-	})
-	ur.chiRouter.Route("/{short}", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			ur.getURL(w, r)
-		})
-	})
 	ur.chiRouter.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
 		ur.apiAddURL(w, r)
 	})
+	ur.chiRouter.Get("/{short}", func(w http.ResponseWriter, r *http.Request) {
+		ur.getURL(w, r)
+	})
 
 	return &ur
-}
-
-func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
-	url, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	short := ur.urlStorer.Add(string(url))
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://" + ur.serverBaseURL + "/" + short)
 }
 
 func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
@@ -91,5 +72,4 @@ func (ur URLRouter) apiAddURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// w.WriteHeader(http.StatusCreated)
 }

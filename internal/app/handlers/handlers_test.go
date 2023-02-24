@@ -17,14 +17,14 @@ type inputProvided struct {
 	method string
 	path   string
 	body   []byte
-	store  map[string]string
+	store  map[string]string // nil is not allowed -- always initialize
 }
 
 type outputDesired struct {
 	code   int
 	header map[string]string
-	body   []byte
-	store  map[string]string
+	body   []byte            // nil means do not test the response body
+	store  map[string]string // nil means do not test the resulting store
 }
 
 var tests = []struct {
@@ -33,7 +33,7 @@ var tests = []struct {
 	o    outputDesired
 }{
 	{
-		name: "Add new URL via API",
+		name: "Add new URL via API #1",
 		i: inputProvided{
 			method: http.MethodPost,
 			path:   "/api/shorten",
@@ -43,23 +43,40 @@ var tests = []struct {
 		o: outputDesired{
 			code:   http.StatusOK,
 			header: map[string]string{"Content-Type": "application/json"},
-			body:   []byte("{\"result\":\"http://server:port/1\"}\n"), // Assume mock storage is used for the first time
-			store:  map[string]string{"": "http://www.google.com"},
+			// Assume the storage mock is added for the 1st time
+			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
+			store: map[string]string{"1": "http://www.google.com"},
 		},
 	},
 	{
-		name: "Add new URL",
+		name: "Add new URL via API #2",
 		i: inputProvided{
 			method: http.MethodPost,
-			path:   "/",
-			body:   []byte("http://www.google.com"),
-			store:  map[string]string{},
+			path:   "/api/shorten",
+			body:   []byte("{\"url\":\"http://www.yandex.ru\"}"),
+			store:  map[string]string{"100": "http://www.google.com"},
 		},
 		o: outputDesired{
-			code:   http.StatusCreated,
-			header: nil,
-			body:   nil,
-			store:  map[string]string{"": "http://www.google.com"},
+			code:   http.StatusOK,
+			header: map[string]string{"Content-Type": "application/json"},
+			// Assume the storage mock is added for the 1st time
+			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
+			store: map[string]string{"100": "http://www.google.com", "1": "http://www.yandex.ru"},
+		},
+	},
+	{
+		name: "Add an already existing URL via API",
+		i: inputProvided{
+			method: http.MethodPost,
+			path:   "/api/shorten",
+			body:   []byte("{\"url\":\"http://www.google.com\"}"),
+			store:  map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},
+		},
+		o: outputDesired{
+			code:   http.StatusOK,
+			header: map[string]string{"Content-Type": "application/json"},
+			body:   []byte("{\"result\":\"http://server:port/100\"}\n"),
+			store:  map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},
 		},
 	},
 	{
@@ -93,7 +110,7 @@ var tests = []struct {
 		},
 	},
 	{
-		name: "Get an existing full URL #1",
+		name: "Get full URL #1",
 		i: inputProvided{
 			method: http.MethodGet,
 			path:   "/abc",
@@ -108,7 +125,7 @@ var tests = []struct {
 		},
 	},
 	{
-		name: "Get an existing full URL #2",
+		name: "Get full URL #2",
 		i: inputProvided{
 			method: http.MethodGet,
 			path:   "/ABC",
@@ -124,17 +141,14 @@ var tests = []struct {
 	},
 }
 
-/*
-	This is a mock storage for test purposes using URLStorer interface. It implements
-
-the most simple approach with a memory-based map and a counter. The mock can also
-access the map directly without Add() / Get() for a faster test setup and checks.
-*/
+// This is a mock storage for test purposes using URLStorer interface. It implements
+// the most simple approach with a memory-based map and a counter. The mock can also
+// access the map directly without Add() / Get() for a faster test setup and checks.
+//
 type urlStoreMock struct {
 	i uint32
 	s map[string]string
 }
-
 func (store *urlStoreMock) Add(url string) string {
 	for k, v := range store.s {
 		if v == url {
@@ -166,8 +180,8 @@ func TestSetRoute(t *testing.T) {
 			request, err := http.NewRequest(tt.i.method, server.URL+tt.i.path, bytes.NewReader(tt.i.body))
 			require.NoError(t, err)
 
-			/* Provide CheckRedirect() to modify client's behavior for re-directs
-			 */
+			// Provide CheckRedirect() to modify client's behavior for re-directs
+			//
 			client := &http.Client{
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
@@ -177,22 +191,22 @@ func TestSetRoute(t *testing.T) {
 			response, err := client.Do(request)
 			require.NoError(t, err)
 
-			/* Check the response status code
-			 */
+			// Check the response status code
+			//
 			if response.StatusCode != tt.o.code {
 				t.Errorf("Expected status code %d, but got %d", tt.o.code, response.StatusCode)
 			}
 
-			/* Check the response header
-			 */
+			// Check the response header
+			//
 			for k, v := range tt.o.header {
 				if r := response.Header.Get(k); r != v {
 					t.Errorf("Expected header key \"%s\" = \"%s\", but key does not exist or = \"%s\"", k, v, r)
 				}
 			}
 
-			/* Check the response body (if needed)
-			 */
+			// Check the response body (if needed)
+			//
 			if tt.o.body != nil {
 				responseBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
@@ -203,8 +217,8 @@ func TestSetRoute(t *testing.T) {
 				}
 			}
 
-			/* Check resulted URL store (if needed), but ignore map key values
-			 */
+			// Check the resulted store (if needed), but ignore map key values
+			//
 			if tt.o.store != nil {
 				if len(tt.o.store) != len(store.s) {
 					t.Errorf("Expected URL store size does not match the resulted one")
