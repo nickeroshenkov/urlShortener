@@ -19,7 +19,7 @@ func main() {
 		s = serverAddress
 	}
 	if b == "" {
-		b = serverAddress
+		b = baseURL
 	}
 	if err := server.Run(s, b); err != nil {
 		log.Fatal(err)

@@ -15,16 +15,16 @@ const (
 )
 
 type URLRouter struct {
-	baseURL string
-	chiRouter     chi.Router
-	urlStorer     storage.URLStorer
+	baseURL   string
+	chiRouter chi.Router
+	urlStorer storage.URLStorer
 }
 
 func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 	ur := URLRouter{
-		baseURL: s,
-		chiRouter:     c,
-		urlStorer:     u,
+		baseURL:   s,
+		chiRouter: c,
+		urlStorer: u,
 	}
 	ur.chiRouter.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
 		ur.apiAddURL(w, r)
