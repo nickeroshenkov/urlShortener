@@ -18,10 +18,12 @@ type URLStorer interface {
 	Close()
 }
 
-func hash(s string) uint32 {
+func encode(url string) string {
+	b := make([]byte, 4)
 	h := fnv.New32a()
-	h.Write([]byte(s))
-	return h.Sum32()
+	h.Write([]byte(url))
+	binary.LittleEndian.PutUint32(b, h.Sum32())
+	return base64.URLEncoding.EncodeToString(b)
 }
 
 // File store impelementation with 32-bit FNV-1a hashes and Base64 encoding (URL safe)
@@ -34,8 +36,8 @@ type URLStoreFile struct {
 	rw *bufio.ReadWriter
 }
 
-func NewURLStoreFile(path string) *URLStoreFile {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+func NewURLStoreFile(filename string) *URLStoreFile {
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		log.Fatal("error opening the file store")
 	}
@@ -69,18 +71,14 @@ func (store *URLStoreFile) Add(url string) string {
 		}
 	}
 
-	h := make([]byte, 4)
-	binary.LittleEndian.PutUint32(h, hash(url))
-	short := base64.URLEncoding.EncodeToString(h)
-
-	_, err1 := store.rw.WriteString(short + "\n")
+	_, err1 := store.rw.WriteString(encode(url) + "\n")
 	_, err2 := store.rw.WriteString(url + "\n")
 	err3 := store.rw.Flush()
 	if err1 != nil || err2 != nil || err3 != nil {
 		log.Fatal("error writing the file store")
 	}
 
-	return short
+	return encode(url)
 }
 
 func (store *URLStoreFile) Get(short string) (string, error) {
@@ -136,12 +134,8 @@ func (store *URLStore) Add(url string) string {
 		}
 	}
 
-	h := make([]byte, 4)
-	binary.LittleEndian.PutUint32(h, hash(url))
-	short := base64.URLEncoding.EncodeToString(h)
-
-	store.s[short] = url
-	return short
+	store.s[encode(url)] = url
+	return encode(url)
 }
 
 func (store *URLStore) Get(short string) (string, error) {
