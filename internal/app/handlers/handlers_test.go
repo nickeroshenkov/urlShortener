@@ -144,11 +144,11 @@ var tests = []struct {
 // This is a mock storage for test purposes using URLStorer interface. It implements
 // the most simple approach with a memory-based map and a counter. The mock can also
 // access the map directly without Add() / Get() for a faster test setup and checks.
-//
 type urlStoreMock struct {
 	i uint32
 	s map[string]string
 }
+
 func (store *urlStoreMock) Add(url string) string {
 	for k, v := range store.s {
 		if v == url {
@@ -166,6 +166,8 @@ func (store *urlStoreMock) Get(short string) (string, error) {
 		return "", errors.New("URL does not exist in the store")
 	}
 	return url, nil
+}
+func (store *urlStoreMock) Close() {
 }
 
 func TestSetRoute(t *testing.T) {

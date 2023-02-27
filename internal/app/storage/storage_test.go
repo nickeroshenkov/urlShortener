@@ -37,6 +37,7 @@ func TestAddGetFile(t *testing.T) {
 
 func TestAddGet(t *testing.T) {
 	store := NewURLStore()
+	defer store.Close()
 	var url string
 	var err error
 

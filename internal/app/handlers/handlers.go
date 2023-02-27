@@ -27,7 +27,7 @@ func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 		urlStorer: u,
 	}
 	ur.chiRouter.Post("/api/shorten", func(w http.ResponseWriter, r *http.Request) {
-		ur.apiAddURL(w, r)
+		ur.addURL(w, r)
 	})
 	ur.chiRouter.Get("/{short}", func(w http.ResponseWriter, r *http.Request) {
 		ur.getURL(w, r)
@@ -51,7 +51,7 @@ func (ur URLRouter) getURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (ur URLRouter) apiAddURL(w http.ResponseWriter, r *http.Request) {
+func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		URL string `json:"url"`
 	}
