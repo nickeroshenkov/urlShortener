@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 
@@ -13,15 +14,32 @@ const (
 )
 
 func main() {
-	s := os.Getenv("SERVER_ADDRESS")
+	// Get config from the environment variables
+	//
+	a := os.Getenv("SERVER_ADDRESS")
 	b := os.Getenv("BASE_URL")
-	if s == "" {
-		s = serverAddress
+	f := os.Getenv("FILE_STORAGE_PATH")
+
+	// Get config from the flags
+	//
+	ap := flag.String("a", serverAddress, "specify server address in the form server:port")
+	bp := flag.String("b", baseURL, "specify base URL in the form http://server:port/")
+	fp := flag.String("f", "", "specify file storage path, empty one forces to use memory storage")
+	flag.Parse()
+
+	// Prioritize environment variables over flags
+	//
+	if a == "" {
+		a = *ap
 	}
 	if b == "" {
-		b = baseURL
+		b = *bp
 	}
-	if err := server.Run(s, b); err != nil {
+	if f == "" {
+		f = *fp
+	}
+
+	if err := server.Run(a, b, f); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,11 +14,10 @@ const (
 	storeFilename = "store.txt"
 )
 
-func Run(serverAddress, baseURL string) (err error) {
+func Run(serverAddress, baseURL, fileStoragePath string) (err error) {
 	var s storage.URLStorer
-	p := os.Getenv("FILE_STORAGE_PATH")
-	if p != "" {
-		s = storage.NewURLStoreFile(p + "/" + storeFilename)
+	if fileStoragePath != "" {
+		s = storage.NewURLStoreFile(fileStoragePath + "/" + storeFilename)
 	} else {
 		s = storage.NewURLStore()
 	}
