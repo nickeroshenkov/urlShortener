@@ -18,6 +18,8 @@ type URLStorer interface {
 	Close()
 }
 
+// All implementations use 32-bit FNV-1a hashes and Base64 encoding (URL safe)
+//
 func encode(url string) string {
 	b := make([]byte, 4)
 	h := fnv.New32a()
@@ -26,10 +28,10 @@ func encode(url string) string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// File store impelementation with 32-bit FNV-1a hashes and Base64 encoding (URL safe)
-// It uses a text file with string pairs, each string terminates with \n
+// File store impelementation. It uses a text file with string pairs:
 // - first string in a pair is a short URL
 // - second string in a pair is the corresponding full URL
+// - each string terminates with \n
 
 type URLStoreFile struct {
 	f  *os.File
@@ -110,8 +112,7 @@ func (store *URLStoreFile) Close() {
 	}
 }
 
-// File store impelementation with 32-bit FNV-1a hashes and Base64 encoding (URL safe)
-// It uses a built-in map data type:
+// Memory store impelementation. It uses a built-in map data type:
 // - key is a short URL
 // - value is the corresponding full URL
 
