@@ -14,10 +14,11 @@ import (
 )
 
 type inputProvided struct {
-	method string
-	path   string
-	body   []byte
-	store  map[string]string // nil is not allowed -- always initialize
+	method   string
+	path     string
+	body     []byte
+	compress bool              // true to allow server to compress the response
+	store    map[string]string // nil is not allowed -- always initialize
 }
 
 type outputDesired struct {
@@ -35,10 +36,11 @@ var tests = []struct {
 	{
 		name: "Add new URL via API #1",
 		i: inputProvided{
-			method: http.MethodPost,
-			path:   "/api/shorten",
-			body:   []byte("{\"url\":\"http://www.google.com\"}"),
-			store:  map[string]string{},
+			method:   http.MethodPost,
+			path:     "/api/shorten",
+			body:     []byte("{\"url\":\"http://www.google.com\"}"),
+			compress: false,
+			store:    map[string]string{},
 		},
 		o: outputDesired{
 			code:   http.StatusOK,
@@ -51,10 +53,28 @@ var tests = []struct {
 	{
 		name: "Add new URL via API #2",
 		i: inputProvided{
-			method: http.MethodPost,
-			path:   "/api/shorten",
-			body:   []byte("{\"url\":\"http://www.yandex.ru\"}"),
-			store:  map[string]string{"100": "http://www.google.com"},
+			method:   http.MethodPost,
+			path:     "/api/shorten",
+			body:     []byte("{\"url\":\"http://www.yandex.ru\"}"),
+			compress: false,
+			store:    map[string]string{"100": "http://www.google.com"},
+		},
+		o: outputDesired{
+			code:   http.StatusOK,
+			header: map[string]string{"Content-Type": "application/json"},
+			// Assume the storage mock is added for the 1st time
+			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
+			store: map[string]string{"100": "http://www.google.com", "1": "http://www.yandex.ru"},
+		},
+	},
+	{
+		name: "Add new URL via API #2 (with compression)",
+		i: inputProvided{
+			method:   http.MethodPost,
+			path:     "/api/shorten",
+			body:     []byte("{\"url\":\"http://www.yandex.ru\"}"),
+			compress: true,
+			store:    map[string]string{"100": "http://www.google.com"},
 		},
 		o: outputDesired{
 			code:   http.StatusOK,
@@ -67,10 +87,11 @@ var tests = []struct {
 	{
 		name: "Add an already existing URL via API",
 		i: inputProvided{
-			method: http.MethodPost,
-			path:   "/api/shorten",
-			body:   []byte("{\"url\":\"http://www.google.com\"}"),
-			store:  map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},
+			method:   http.MethodPost,
+			path:     "/api/shorten",
+			body:     []byte("{\"url\":\"http://www.google.com\"}"),
+			compress: false,
+			store:    map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},
 		},
 		o: outputDesired{
 			code:   http.StatusOK,
@@ -82,10 +103,11 @@ var tests = []struct {
 	{
 		name: "Try to get a non-existing URL #1",
 		i: inputProvided{
-			method: http.MethodGet,
-			path:   "/12345",
-			body:   nil,
-			store:  map[string]string{},
+			method:   http.MethodGet,
+			path:     "/12345",
+			body:     nil,
+			compress: false,
+			store:    map[string]string{},
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -97,10 +119,11 @@ var tests = []struct {
 	{
 		name: "Try to get a non-existing URL #2",
 		i: inputProvided{
-			method: http.MethodGet,
-			path:   "/12345",
-			body:   nil,
-			store:  map[string]string{"54321": "http://www.google.com"},
+			method:   http.MethodGet,
+			path:     "/12345",
+			body:     nil,
+			compress: false,
+			store:    map[string]string{"54321": "http://www.google.com"},
 		},
 		o: outputDesired{
 			code:   http.StatusBadRequest,
@@ -112,10 +135,11 @@ var tests = []struct {
 	{
 		name: "Get full URL #1",
 		i: inputProvided{
-			method: http.MethodGet,
-			path:   "/abc",
-			body:   nil,
-			store:  map[string]string{"abc": "http://www.google.com"},
+			method:   http.MethodGet,
+			path:     "/abc",
+			body:     nil,
+			compress: false,
+			store:    map[string]string{"abc": "http://www.google.com"},
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
@@ -127,10 +151,11 @@ var tests = []struct {
 	{
 		name: "Get full URL #2",
 		i: inputProvided{
-			method: http.MethodGet,
-			path:   "/ABC",
-			body:   nil,
-			store:  map[string]string{"abc": "http://www.google.com", "ABC": "http://www.yandex.ru"},
+			method:   http.MethodGet,
+			path:     "/ABC",
+			body:     nil,
+			compress: false,
+			store:    map[string]string{"abc": "http://www.google.com", "ABC": "http://www.yandex.ru"},
 		},
 		o: outputDesired{
 			code:   http.StatusTemporaryRedirect,
@@ -175,12 +200,24 @@ func TestSetRoute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := urlStoreMock{i: 0, s: tt.i.store}
 			router := chi.NewRouter()
+
+			router.Use(DecompressRequest) // For gzip compression testing
+			router.Use(CompressResponse)  // For gzip compression testing
+
 			NewURLRouter("http://server:port/", router, &store)
 			server := httptest.NewServer(router)
 			defer server.Close()
 
 			request, err := http.NewRequest(tt.i.method, server.URL+tt.i.path, bytes.NewReader(tt.i.body))
 			require.NoError(t, err)
+
+			// Prepare to test gzip compression
+			//
+			if tt.i.compress == true {
+				request.Header.Set("Accept-Encoding", "gzip")
+			} else {
+				request.Header.Del("Accept-Encoding")
+			}
 
 			// Provide CheckRedirect() to modify client's behavior for re-directs
 			//
@@ -213,6 +250,12 @@ func TestSetRoute(t *testing.T) {
 				responseBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
 				defer response.Body.Close()
+
+				// Prepare to test gzip compression
+				//
+				if tt.i.compress == true {
+					tt.o.body = gzipCompress(tt.o.body)
+				}
 
 				if !bytes.Equal(responseBody, tt.o.body) {
 					t.Errorf("Expected body \"%s\", got \"%s\"", tt.o.body, responseBody)
