@@ -17,7 +17,7 @@ const (
 func Run(serverAddress, baseURL, fileStoragePath string) error {
 	var s storage.URLStorer
 	if fileStoragePath != "" {
-		s = storage.NewURLStoreFile(fileStoragePath + "/" + storeFilename)
+		s = storage.NewURLStoreFile(fileStoragePath) // + "/" + storeFilename)
 	} else {
 		s = storage.NewURLStore()
 	}
