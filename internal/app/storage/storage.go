@@ -39,7 +39,7 @@ type URLStoreFile struct {
 }
 
 func NewURLStoreFile(filename string) *URLStoreFile {
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0664) // Mentor suggests to use 0664 or 0644 instead of os.ModePerm
 	if err != nil {
 		log.Fatal("error opening the file store")
 	}
