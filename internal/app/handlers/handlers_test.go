@@ -59,7 +59,7 @@ var tests = []struct {
 			store:    map[string]string{},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
+			code:   http.StatusCreated,
 			header: map[string]string{"Content-Type": "application/json"},
 			// Assume the storage mock is added for the 1st time
 			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
@@ -76,7 +76,7 @@ var tests = []struct {
 			store:    map[string]string{"100": "http://www.google.com"},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
+			code:   http.StatusCreated,
 			header: map[string]string{"Content-Type": "application/json"},
 			// Assume the storage mock is added for the 1st time
 			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
@@ -93,7 +93,7 @@ var tests = []struct {
 			store:    map[string]string{"100": "http://www.google.com"},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
+			code:   http.StatusCreated,
 			header: map[string]string{"Content-Type": "application/json"},
 			// Assume the storage mock is added for the 1st time
 			body:  []byte("{\"result\":\"http://server:port/1\"}\n"),
@@ -110,7 +110,7 @@ var tests = []struct {
 			store:    map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},
 		},
 		o: outputDesired{
-			code:   http.StatusOK,
+			code:   http.StatusCreated,
 			header: map[string]string{"Content-Type": "application/json"},
 			body:   []byte("{\"result\":\"http://server:port/100\"}\n"),
 			store:  map[string]string{"100": "http://www.google.com", "101": "http://www.yandex.ru"},

@@ -68,6 +68,7 @@ func (ur URLRouter) addURLAPI(w http.ResponseWriter, r *http.Request) {
 	short := ur.urlStorer.Add(string(request.URL))
 	response.Result = ur.baseURL + short
 	w.Header().Set(headerContentType, "application/json")
+	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
