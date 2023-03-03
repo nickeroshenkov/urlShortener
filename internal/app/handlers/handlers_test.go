@@ -34,6 +34,22 @@ var tests = []struct {
 	o    outputDesired
 }{
 	{
+		name: "Add new URL",
+		i: inputProvided{
+			method:   http.MethodPost,
+			path:     "/",
+			body:     []byte("http://www.google.com"),
+			compress: false,
+			store:    map[string]string{},
+		},
+		o: outputDesired{
+			code:   http.StatusCreated,
+			header: nil,
+			body:   nil,
+			store:  map[string]string{"": "http://www.google.com"},
+		},
+	},
+	{
 		name: "Add new URL via API #1",
 		i: inputProvided{
 			method:   http.MethodPost,
