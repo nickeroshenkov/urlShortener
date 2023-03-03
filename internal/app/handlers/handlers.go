@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"io"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -50,7 +50,7 @@ func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	}
 	short := ur.urlStorer.Add(string(url))
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, ur.baseURL+short)
+	fmt.Fprint(w, ur.baseURL+"/"+short)
 }
 
 func (ur URLRouter) addURLAPI(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func (ur URLRouter) addURLAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 	short := ur.urlStorer.Add(string(request.URL))
-	response.Result = ur.baseURL + short
+	response.Result = ur.baseURL + "/" + short
 	w.Header().Set(headerContentType, "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {

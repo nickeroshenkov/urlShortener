@@ -220,7 +220,7 @@ func TestSetRoute(t *testing.T) {
 			router.Use(DecompressRequest) // For gzip compression testing
 			router.Use(CompressResponse)  // For gzip compression testing
 
-			NewURLRouter("http://server:port/", router, &store)
+			NewURLRouter("http://server:port", router, &store)
 			server := httptest.NewServer(router)
 			defer server.Close()
 

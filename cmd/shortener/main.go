@@ -10,7 +10,7 @@ import (
 
 const (
 	serverAddress = "localhost:8080"
-	baseURL       = "http://localhost:8080/"
+	baseURL       = "http://localhost:8080"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	// Get config from the flags
 	//
 	ap := flag.String("a", serverAddress, "specify server address in the form server:port")
-	bp := flag.String("b", baseURL, "specify base URL in the form http://server:port/")
+	bp := flag.String("b", baseURL, "specify base URL in the form http://server:port")
 	fp := flag.String("f", "", "specify file storage path, empty one forces to use memory storage")
 	flag.Parse()
 
