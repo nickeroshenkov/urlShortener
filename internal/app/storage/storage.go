@@ -1,22 +1,25 @@
 package storage
 
 import (
-	"bufio"
+	"errors"
 	"encoding/base64"
 	"encoding/binary"
-	"errors"
 	"hash/fnv"
-	"io"
-	"log"
-	"os"
-	"strings"
 )
 
 type URLStorer interface {
-	Add(url string) string
+	Add(url string) (string, error)
 	Get(short string) (string, error)
-	Close()
+	Close() error
 }
+
+var (
+	errNoURL = errors.New("URL does not exist in the store")
+	errOpen = errors.New("error opening the file store")
+	errRead = errors.New("error reading the file store")
+	errWrite = errors.New("error writing the file store")
+	errClose = errors.New("error closing the file store")
+)
 
 // All implementations use 32-bit FNV-1a hashes and Base64 encoding (URL safe)
 //
@@ -28,125 +31,3 @@ func encode(url string) string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// File store impelementation. It uses a text file with string pairs:
-// - first string in a pair is a short URL
-// - second string in a pair is the corresponding full URL
-// - each string terminates with \n
-
-type URLStoreFile struct {
-	f  *os.File
-	rw *bufio.ReadWriter
-}
-
-func NewURLStoreFile(filename string) *URLStoreFile {
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0664) // Mentor suggests to use 0664 or 0644 instead of os.ModePerm
-	if err != nil {
-		log.Fatal("error opening the file store")
-	}
-	rw := bufio.NewReadWriter(bufio.NewReader(f), bufio.NewWriter(f))
-	return &URLStoreFile{
-		f:  f,
-		rw: rw,
-	}
-}
-
-func (store *URLStoreFile) Add(url string) string {
-	store.f.Seek(0, 0)
-	store.rw.Reader.Reset(store.f)
-	store.rw.Writer.Reset(store.f)
-
-	// Check if URL has already been stored
-	//
-	for {
-		k, err1 := store.rw.ReadString('\n')
-		v, err2 := store.rw.ReadString('\n')
-		if len(k) == 0 && err1 == io.EOF {
-			break
-		}
-		if err1 != nil || err2 != nil {
-			log.Fatal("error reading the file store")
-		}
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-		if v == url {
-			return k
-		}
-	}
-
-	_, err1 := store.rw.WriteString(encode(url) + "\n")
-	_, err2 := store.rw.WriteString(url + "\n")
-	err3 := store.rw.Flush()
-	if err1 != nil || err2 != nil || err3 != nil {
-		log.Fatal("error writing the file store")
-	}
-
-	return encode(url)
-}
-
-func (store *URLStoreFile) Get(short string) (string, error) {
-	store.f.Seek(0, 0)
-	store.rw.Reader.Reset(store.f)
-	getError := errors.New("URL does not exist in the store")
-
-	for {
-		k, err1 := store.rw.ReadString('\n')
-		v, err2 := store.rw.ReadString('\n')
-		if len(k) == 0 && err1 == io.EOF {
-			return "", getError
-		}
-		if err1 != nil || err2 != nil {
-			log.Fatal("error reading the file store")
-		}
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-		if k == short {
-			return v, nil
-		}
-	}
-}
-
-func (store *URLStoreFile) Close() {
-	err := store.f.Close()
-	if err != nil {
-		log.Fatal("error closing the file store")
-	}
-}
-
-// Memory store impelementation. It uses a built-in map data type:
-// - key is a short URL
-// - value is the corresponding full URL
-
-type URLStore struct {
-	s map[string]string
-}
-
-func NewURLStore() *URLStore {
-	return &URLStore{
-		s: map[string]string{},
-	}
-}
-
-func (store *URLStore) Add(url string) string {
-	// Check if URL has already been stored
-	//
-	for k, v := range store.s {
-		if v == url {
-			return k
-		}
-	}
-
-	store.s[encode(url)] = url
-	return encode(url)
-}
-
-func (store *URLStore) Get(short string) (string, error) {
-	var getError = errors.New("URL does not exist in the store")
-	url, ok := store.s[short]
-	if !ok {
-		return "", getError
-	}
-	return url, nil
-}
-
-func (store *URLStore) Close() {
-}

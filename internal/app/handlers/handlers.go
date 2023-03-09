@@ -42,13 +42,17 @@ func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 }
 
 func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
-	url, err := io.ReadAll(r.Body)
+	url, err1 := io.ReadAll(r.Body)
 	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err1 != nil {
+		http.Error(w, err1.Error(), http.StatusInternalServerError)
 		return
 	}
-	short := ur.urlStorer.Add(string(url))
+	short, err2 := ur.urlStorer.Add(string(url))
+	if err2 != nil {
+		http.Error(w, err2.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, ur.baseURL+"/"+short)
 }
@@ -65,8 +69,12 @@ func (ur URLRouter) addURLAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	short := ur.urlStorer.Add(string(request.URL))
-	response.Result = ur.baseURL + "/" + short
+	short, err := ur.urlStorer.Add(string(request.URL))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Result = fmt.Sprintf("%s/%s", ur.baseURL, short)
 	w.Header().Set(headerContentType, "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {

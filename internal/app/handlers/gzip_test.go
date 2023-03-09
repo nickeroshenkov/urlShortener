@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// gzipCompress() / gzipDecompress are used by handlers tests only. They are the simple
+// gzipCompress() / gzipDecompress() are used by handlers tests only. They are the simple
 // implementation of gzip coding from []byte to []byte from Yandex.Practicum platform
 // "as is" with few adjustments (changing flate>gzip, using panic instead of errors).
 

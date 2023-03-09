@@ -6,20 +6,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/nickeroshenkov/urlShortener/internal/app/config"	
 	"github.com/nickeroshenkov/urlShortener/internal/app/handlers"
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
-const (
-	storeFilename = "store.txt"
-)
-
-func Run(serverAddress, baseURL, fileStoragePath string) error {
+func Run(c *config.Config) error {
 	var s storage.URLStorer
-	if fileStoragePath != "" {
-		s = storage.NewURLStoreFile(fileStoragePath) // + "/" + storeFilename)
+	var err error
+	if c.FileStoragePath != "" {
+		s, err = storage.NewURLStoreFile(c.FileStoragePath)
 	} else {
-		s = storage.NewURLStore()
+		s, err = storage.NewURLStore()
+	}
+	if err != nil {
+		return err
 	}
 	defer s.Close()
 
@@ -31,7 +32,7 @@ func Run(serverAddress, baseURL, fileStoragePath string) error {
 	r.Use(handlers.DecompressRequest)
 	r.Use(handlers.CompressResponse)
 
-	handlers.NewURLRouter(baseURL, r, s)
+	handlers.NewURLRouter(c.BaseURL, r, s)
 
-	return http.ListenAndServe(serverAddress, r)
+	return http.ListenAndServe(c.ServerAddress, r)
 }
