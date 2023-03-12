@@ -7,7 +7,7 @@ import (
 )
 
 func TestAddGetFile(t *testing.T) {
-	store, _ := NewURLStoreFile("./test.txt")
+	store, _ := NewFile("./test.txt")
 	defer store.Close()
 	var url string
 	var err error

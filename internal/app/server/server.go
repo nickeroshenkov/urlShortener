@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/nickeroshenkov/urlShortener/internal/app/config"
 	"github.com/nickeroshenkov/urlShortener/internal/app/router"
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
@@ -18,7 +17,7 @@ type URLServer struct {
 	Router *router.URLRouter
 }
 
-func New(cnf *config.ServerConfig) (*URLServer, error) {
+func New(cnf *Config) (*URLServer, error) {
 	var srv URLServer
 	var sto storage.URLStorer
 	var err error
@@ -26,9 +25,9 @@ func New(cnf *config.ServerConfig) (*URLServer, error) {
 	// Server can explicitly use few types of storages based on the config.
 	//
 	if cnf.FileStoragePath != "" {
-		sto, err = storage.NewURLStoreFile(cnf.FileStoragePath)
+		sto, err = storage.NewFile(cnf.FileStoragePath)
 	} else {
-		sto, err = storage.NewURLStore()
+		sto, err = storage.New()
 	}
 	if err != nil {
 		return nil, err

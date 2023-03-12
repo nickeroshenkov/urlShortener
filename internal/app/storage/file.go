@@ -18,7 +18,7 @@ type URLStoreFile struct {
 	rw *bufio.ReadWriter
 }
 
-func NewURLStoreFile(filename string) (*URLStoreFile, error) {
+func NewFile(filename string) (*URLStoreFile, error) {
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0664)
 	if err != nil {
 		return nil, errors.New(errOpen)

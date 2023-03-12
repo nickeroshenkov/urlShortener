@@ -7,7 +7,7 @@ import (
 )
 
 func TestAddGet(t *testing.T) {
-	store, _ := NewURLStore()
+	store, _ := New()
 	defer store.Close()
 	var url string
 	var err error

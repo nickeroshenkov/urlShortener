@@ -7,12 +7,11 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/nickeroshenkov/urlShortener/internal/app/config"
 	"github.com/nickeroshenkov/urlShortener/internal/app/server"
 )
 
 func main() {
-	var c config.ServerConfig
+	var c server.Config
 	c.SetDefaults()
 	c.LoadFlagsConditional() // Prioritize flags over the default values
 	c.LoadEVarsConditional() // Prioritize environment variables over the flags
