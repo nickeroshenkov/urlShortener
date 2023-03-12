@@ -1,4 +1,4 @@
-package handlers
+package router
 
 import (
 	"encoding/json"
@@ -22,7 +22,7 @@ type URLRouter struct {
 	urlStorer storage.URLStorer
 }
 
-func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
+func New(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 	ur := URLRouter{
 		baseURL:   s,
 		chiRouter: c,

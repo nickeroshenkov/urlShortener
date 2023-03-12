@@ -9,13 +9,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/nickeroshenkov/urlShortener/internal/app/config"
-	"github.com/nickeroshenkov/urlShortener/internal/app/handlers"
+	"github.com/nickeroshenkov/urlShortener/internal/app/router"
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
 type URLServer struct {
 	http.Server
-	Router *handlers.URLRouter
+	Router *router.URLRouter
 }
 
 func New(cnf *config.ServerConfig) (*URLServer, error) {
@@ -39,10 +39,10 @@ func New(cnf *config.ServerConfig) (*URLServer, error) {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(handlers.DecompressRequest)
-	r.Use(handlers.CompressResponse)
+	r.Use(router.DecompressRequest)
+	r.Use(router.CompressResponse)
 
-	srv.Router = handlers.NewURLRouter(cnf.BaseURL, r, sto)
+	srv.Router = router.New(cnf.BaseURL, r, sto)
 
 	srv.Addr = cnf.ServerAddress
 	srv.Handler = r
