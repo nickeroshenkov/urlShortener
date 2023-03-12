@@ -1,29 +1,39 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/nickeroshenkov/urlShortener/internal/app/config"	
+	"github.com/nickeroshenkov/urlShortener/internal/app/config"
 	"github.com/nickeroshenkov/urlShortener/internal/app/handlers"
 	"github.com/nickeroshenkov/urlShortener/internal/app/storage"
 )
 
-func Run(c *config.Config) error {
-	var s storage.URLStorer
+type URLServer struct {
+	http.Server
+	Router *handlers.URLRouter
+}
+
+func New(cnf *config.ServerConfig) (*URLServer, error) {
+	var srv URLServer
+	var sto storage.URLStorer
 	var err error
-	if c.FileStoragePath != "" {
-		s, err = storage.NewURLStoreFile(c.FileStoragePath)
+
+	// Server can explicitly use few types of storages based on the config.
+	//
+	if cnf.FileStoragePath != "" {
+		sto, err = storage.NewURLStoreFile(cnf.FileStoragePath)
 	} else {
-		s, err = storage.NewURLStore()
+		sto, err = storage.NewURLStore()
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer s.Close()
-
+	
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -32,7 +42,22 @@ func Run(c *config.Config) error {
 	r.Use(handlers.DecompressRequest)
 	r.Use(handlers.CompressResponse)
 
-	handlers.NewURLRouter(c.BaseURL, r, s)
+	srv.Router = handlers.NewURLRouter(cnf.BaseURL, r, sto)
 
-	return http.ListenAndServe(c.ServerAddress, r)
+	srv.Addr = cnf.ServerAddress
+	srv.Handler = r
+
+	return &srv, nil
+}
+
+func (srv *URLServer) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Server.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := srv.Router.Close(); err != nil {
+		return err
+	}
+	return nil
 }

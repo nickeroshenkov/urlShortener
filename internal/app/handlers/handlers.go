@@ -41,6 +41,10 @@ func NewURLRouter(s string, c chi.Router, u storage.URLStorer) *URLRouter {
 	return &ur
 }
 
+func (ur *URLRouter) Close() error {
+	return ur.urlStorer.Close()
+}
+
 func (ur URLRouter) addURL(w http.ResponseWriter, r *http.Request) {
 	url, err1 := io.ReadAll(r.Body)
 	defer r.Body.Close()

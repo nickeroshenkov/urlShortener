@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"os"
 	"strings"
@@ -20,7 +21,7 @@ type URLStoreFile struct {
 func NewURLStoreFile(filename string) (*URLStoreFile, error) {
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0664)
 	if err != nil {
-		return nil, errOpen
+		return nil, errors.New(errOpen)
 	}
 	rw := bufio.NewReadWriter(bufio.NewReader(f), bufio.NewWriter(f))
 	return &URLStoreFile{
@@ -43,7 +44,7 @@ func (store *URLStoreFile) Add(url string) (string, error) {
 			break
 		}
 		if err1 != nil || err2 != nil {
-			return "", errRead
+			return "", errors.New(errRead)
 		}
 		k = strings.TrimSpace(k)
 		v = strings.TrimSpace(v)
@@ -56,7 +57,7 @@ func (store *URLStoreFile) Add(url string) (string, error) {
 	_, err2 := store.rw.WriteString(url + "\n")
 	err3 := store.rw.Flush()
 	if err1 != nil || err2 != nil || err3 != nil {
-		return "", errWrite
+		return "", errors.New(errWrite)
 	}
 
 	return encode(url), nil
@@ -70,10 +71,10 @@ func (store *URLStoreFile) Get(short string) (string, error) {
 		k, err1 := store.rw.ReadString('\n')
 		v, err2 := store.rw.ReadString('\n')
 		if len(k) == 0 && err1 == io.EOF {
-			return "", errNoURL
+			return "", errors.New(errNoURL)
 		}
 		if err1 != nil || err2 != nil {
-			return "", errRead
+			return "", errors.New(errRead)
 		}
 		k = strings.TrimSpace(k)
 		v = strings.TrimSpace(v)
@@ -86,7 +87,7 @@ func (store *URLStoreFile) Get(short string) (string, error) {
 func (store *URLStoreFile) Close() error {
 	err := store.f.Close()
 	if err != nil {
-		return errClose
+		return errors.New(errClose)
 	}
 	return nil
 }

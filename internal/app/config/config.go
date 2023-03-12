@@ -10,7 +10,7 @@ const (
 	baseURL       = "http://localhost:8080"
 )
 
-type Config struct {
+type ServerConfig struct {
 	ServerAddress   string
 	BaseURL         string
 	FileStoragePath string
@@ -18,7 +18,7 @@ type Config struct {
 
 // Load config from the environment variables, if values are non-empty
 //
-func (c *Config) LoadEVarsConditional() {
+func (c *ServerConfig) LoadEVarsConditional() {
 	a := os.Getenv("SERVER_ADDRESS")
 	b := os.Getenv("BASE_URL")
 	f := os.Getenv("FILE_STORAGE_PATH")
@@ -35,7 +35,7 @@ func (c *Config) LoadEVarsConditional() {
 
 // Load config from the flags, if values are non-empty
 //
-func (c *Config) LoadFlagsConditional() {
+func (c *ServerConfig) LoadFlagsConditional() {
 	ap := flag.String("a", serverAddress, "specify server address in the form server:port")
 	bp := flag.String("b", baseURL, "specify base URL in the form http://server:port")
 	fp := flag.String("f", "", "specify file storage path, empty one forces to use memory storage")
@@ -53,7 +53,7 @@ func (c *Config) LoadFlagsConditional() {
 
 // Set the default config
 //
-func (c *Config) SetDefaults() {
+func (c *ServerConfig) SetDefaults() {
 	c.ServerAddress = serverAddress
 	c.BaseURL = baseURL
 	c.FileStoragePath = ""

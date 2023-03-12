@@ -19,23 +19,17 @@ func NewURLStore() (*URLStore, error) {
 }
 
 func (store *URLStore) Add(url string) (string, error) {
-	// Check if URL has already been stored
-	//
-	for k, v := range store.s {
-		if v == url {
-			return k, nil
-		}
+	short := encode(url)
+	if _,ok := store.s[short]; !ok {
+		store.s[short] = url
 	}
-
-	store.s[encode(url)] = url
-	return encode(url), nil
+	return short, nil
 }
 
 func (store *URLStore) Get(short string) (string, error) {
-	var getError = errors.New("URL does not exist in the store")
 	url, ok := store.s[short]
 	if !ok {
-		return "", getError
+		return "", errors.New(errNoURL)
 	}
 	return url, nil
 }

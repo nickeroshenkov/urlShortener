@@ -29,7 +29,7 @@ func gzipCompress(data []byte) []byte {
 	// в какой-то момент сжатия, используйте метод Flush()
 	err = w.Close()
 	if err != nil {
-		panic (fmt.Errorf("failed compress data: %v", err))
+		panic(fmt.Errorf("failed compress data: %v", err))
 	}
 	// переменная b содержит сжатые данные
 	return b.Bytes()
