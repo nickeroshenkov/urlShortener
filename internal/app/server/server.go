@@ -19,16 +19,8 @@ type URLServer struct {
 
 func New(cnf *Config) (*URLServer, error) {
 	var srv URLServer
-	var sto storage.URLStorer
-	var err error
 
-	// Server can explicitly use few types of storages based on the config.
-	//
-	if *cnf.FileStoragePath != "" {
-		sto, err = storage.NewFile(*cnf.FileStoragePath)
-	} else {
-		sto, err = storage.New()
-	}
+	sto, err := storage.New(*cnf.FileStoragePath)
 	if err != nil {
 		return nil, err
 	}

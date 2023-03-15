@@ -7,7 +7,7 @@ import (
 )
 
 func TestAddGet(t *testing.T) {
-	store, _ := New()
+	store, _ := NewMemory()
 	defer store.Close()
 	var url string
 	var err error

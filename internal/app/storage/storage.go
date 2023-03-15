@@ -29,3 +29,11 @@ func encode(url string) string {
 	binary.LittleEndian.PutUint32(b, h.Sum32())
 	return base64.URLEncoding.EncodeToString(b)
 }
+
+func New(f string) (URLStorer, error) {
+	if f != "" {
+		return NewFile(f)
+	} else {
+		return NewMemory()
+	}
+}

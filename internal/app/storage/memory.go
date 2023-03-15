@@ -12,7 +12,7 @@ type URLStore struct {
 	s map[string]string
 }
 
-func New() (*URLStore, error) {
+func NewMemory() (*URLStore, error) {
 	return &URLStore{
 		s: map[string]string{},
 	}, nil
