@@ -24,8 +24,8 @@ func New(cnf *Config) (*URLServer, error) {
 
 	// Server can explicitly use few types of storages based on the config.
 	//
-	if cnf.FileStoragePath != "" {
-		sto, err = storage.NewFile(cnf.FileStoragePath)
+	if *cnf.FileStoragePath != "" {
+		sto, err = storage.NewFile(*cnf.FileStoragePath)
 	} else {
 		sto, err = storage.New()
 	}
@@ -41,9 +41,9 @@ func New(cnf *Config) (*URLServer, error) {
 	r.Use(router.DecompressRequest)
 	r.Use(router.CompressResponse)
 
-	srv.Router = router.New(cnf.BaseURL, r, sto)
+	srv.Router = router.New(*cnf.BaseURL, r, sto)
 
-	srv.Addr = cnf.ServerAddress
+	srv.Addr = *cnf.ServerAddress
 	srv.Handler = r
 
 	return &srv, nil

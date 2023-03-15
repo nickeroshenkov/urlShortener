@@ -3,7 +3,7 @@ package router
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
+	"errors"
 )
 
 // gzipCompress() / gzipDecompress() are used by handlers tests only. They are the simple
@@ -11,36 +11,36 @@ import (
 // "as is" with few adjustments (changing flate>gzip, using panic instead of errors).
 
 // Compress сжимает слайс байт.
-func gzipCompress(data []byte) []byte {
+func gzipCompress(data []byte) ([]byte, error) {
 	var b bytes.Buffer
 	// создаём переменную w — в неё будут записываться входящие данные,
 	// которые будут сжиматься и сохраняться в bytes.Buffer
 	w, err := gzip.NewWriterLevel(&b, gzip.BestSpeed)
 	if err != nil {
-		panic(fmt.Errorf("failed init compress writer: %v", err))
+		return nil, errors.New("failed init compress writer")
 	}
 	// запись данных
 	_, err = w.Write(data)
 	if err != nil {
-		panic(fmt.Errorf("failed write data to compress temporary buffer: %v", err))
+		return nil, errors.New("failed write data to compress temporary buffer")
 	}
 	// обязательно нужно вызвать метод Close() — в противном случае часть данных
 	// может не записаться в буфер b; если нужно выгрузить все упакованные данные
 	// в какой-то момент сжатия, используйте метод Flush()
 	err = w.Close()
 	if err != nil {
-		panic(fmt.Errorf("failed compress data: %v", err))
+		return nil, errors.New("failed compress data")
 	}
 	// переменная b содержит сжатые данные
-	return b.Bytes()
+	return b.Bytes(), nil
 }
 
 // Decompress распаковывает слайс байт.
-func gzipDecompress(data []byte) []byte {
+func gzipDecompress(data []byte) ([]byte, error) {
 	// переменная r будет читать входящие данные и распаковывать их
 	r, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
-		panic(fmt.Errorf("failed init compress reader: %v", err))
+		return nil, errors.New("failed init compress reader")
 	}
 	defer r.Close()
 
@@ -48,8 +48,8 @@ func gzipDecompress(data []byte) []byte {
 	// в переменную b записываются распакованные данные
 	_, err = b.ReadFrom(r)
 	if err != nil {
-		panic(fmt.Errorf("failed decompress data: %v", err))
+		return nil, errors.New("failed decompress data")
 	}
 
-	return b.Bytes()
+	return b.Bytes(), nil
 }

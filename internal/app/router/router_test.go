@@ -274,7 +274,8 @@ func TestSetRoute(t *testing.T) {
 				// Prepare to test gzip compression
 				//
 				if tt.i.compress == true {
-					tt.o.body = gzipCompress(tt.o.body)
+					tt.o.body, err = gzipCompress(tt.o.body)
+					require.NoError(t, err)
 				}
 
 				if !bytes.Equal(responseBody, tt.o.body) {

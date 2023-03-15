@@ -11,12 +11,10 @@ import (
 )
 
 func main() {
-	var c server.Config
-	c.SetDefaults()
-	c.LoadFlagsConditional() // Prioritize flags over the default values
-	c.LoadEVarsConditional() // Prioritize environment variables over the flags
-
-	srv, err := server.New(&c)
+	cnf := server.NewConfig()
+	cnf.Parse()
+	
+	srv, err := server.New(cnf)
 	if err != nil {
 		log.Fatal(err)
 	}
